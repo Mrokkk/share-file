@@ -29,7 +29,7 @@ def read_from_file(conn, file):
 def share(args):
     filename = args.file
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind(('0.0.0.0', 8080))
+    sock.bind(('0.0.0.0', 0))
     address = sock.getsockname()
     ip_addresses = get_ips()
     logging.debug('Running server on :', address)
