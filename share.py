@@ -3,6 +3,7 @@
 import os
 import pickle
 import socket
+import logging
 import argparse
 import netifaces as ni
 from base64 import b64encode, b64decode
@@ -31,8 +32,8 @@ def share(args):
     sock.bind(('0.0.0.0', 8080))
     address = sock.getsockname()
     ip_addresses = get_ips()
-    print('Running server on :', address)
-    print('NetIfaces IPs :', ip_addresses)
+    logging.debug('Running server on :', address)
+    logging.debug('NetIfaces IPs :', ip_addresses)
     data_to_send = [ip_addresses, address[1]]
     serialized = bytes(os.path.basename(filename) + ':', 'utf-8') + b64encode(pickle.dumps(data_to_send))
     print(serialized.decode('utf-8'))
@@ -68,8 +69,8 @@ def get(args):
     filename = data.split(':')[0]
     serialized = b64decode(bytes(data.split(':')[1], 'ascii'))
     t = pickle.loads(serialized)
-    print('Filename:', filename)
-    print('Data:', t)
+    logging.debug('Filename:', filename)
+    logging.debug('Data:', t)
     ip_addresses = t[0]
     port = t[1]
     get_file(filename, ip_addresses, port)
