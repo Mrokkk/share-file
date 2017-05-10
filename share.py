@@ -3,11 +3,11 @@
 import os
 import pickle
 import socket
-import asyncio
 import argparse
 import netifaces as ni
-from numpy import uint8
 from base64 import b64encode, b64decode
+
+CHUNK_SIZE = 4096
 
 def get_ips():
     ip_addresses = []
@@ -33,7 +33,10 @@ def spawn_server(filename):
         try:
             (conn, address) = sock.accept()
             with open(filename, 'rb') as f:
-                conn.send(f.read())
+                data = f.read(CHUNK_SIZE)
+                while (data):
+                    conn.send(data)
+                    data = f.read(CHUNK_SIZE)
                 conn.close()
         except KeyboardInterrupt:
             print('')
@@ -43,10 +46,10 @@ def share(args):
     spawn_server(args.file)
 
 def write_to_file(sock, file):
-    data = sock.recv(1024)
+    data = sock.recv(CHUNK_SIZE)
     while (data):
         file.write(data)
-        data = sock.recv(1024)
+        data = sock.recv(CHUNK_SIZE)
 
 def get_file(filename, ip_addresses, port):
     for ip in ip_addresses:
