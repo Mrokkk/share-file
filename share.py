@@ -7,6 +7,7 @@ import argparse
 import netifaces as ni
 from base64 import b64encode, b64decode
 
+MAX_CONNECTIONS = 2
 CHUNK_SIZE = 4096
 
 def get_ips():
@@ -18,7 +19,14 @@ def get_ips():
             pass
     return ip_addresses
 
-def spawn_server(filename):
+def read_from_file(conn, file):
+    data = file.read(CHUNK_SIZE)
+    while (data):
+        conn.send(data)
+        data = file.read(CHUNK_SIZE)
+
+def share(args):
+    filename = args.file
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(('0.0.0.0', 8080))
     address = sock.getsockname()
@@ -28,22 +36,16 @@ def spawn_server(filename):
     data_to_send = [ip_addresses, address[1]]
     serialized = bytes(os.path.basename(filename) + ':', 'utf-8') + b64encode(pickle.dumps(data_to_send))
     print(serialized.decode('utf-8'))
-    sock.listen(2)
+    sock.listen(MAX_CONNECTIONS)
     while True:
         try:
             (conn, address) = sock.accept()
             with open(filename, 'rb') as f:
-                data = f.read(CHUNK_SIZE)
-                while (data):
-                    conn.send(data)
-                    data = f.read(CHUNK_SIZE)
+                read_from_file(conn, f)
                 conn.close()
         except KeyboardInterrupt:
             print('')
             return
-
-def share(args):
-    spawn_server(args.file)
 
 def write_to_file(sock, file):
     data = sock.recv(CHUNK_SIZE)
@@ -63,7 +65,6 @@ def get_file(filename, ip_addresses, port):
 
 def get(args):
     data = args.key
-    print('Called get on', data)
     filename = data.split(':')[0]
     serialized = b64decode(bytes(data.split(':')[1], 'ascii'))
     t = pickle.loads(serialized)
