@@ -32,8 +32,8 @@ def share(args):
     sock.bind(('0.0.0.0', 0))
     address = sock.getsockname()
     ip_addresses = get_ips()
-    logging.debug('Running server on :', address)
-    logging.debug('NetIfaces IPs :', ip_addresses)
+    logging.debug('Running server on: %s', address)
+    logging.debug('NetIfaces IPs: %s', ip_addresses)
     data_to_send = [ip_addresses, address[1]]
     serialized = bytes(os.path.basename(filename) + ':', 'utf-8') + b64encode(pickle.dumps(data_to_send))
     print(serialized.decode('utf-8'))
@@ -59,18 +59,21 @@ def get_file(filename, ip_addresses, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             sock.connect((ip, port))
-        except:
+        except Exception as exc:
+            logging.debug('Cannot connect to %s: %s', ip, str(exc))
             continue
         with open(filename, 'wb') as file:
             write_to_file(sock, file)
+            return
+    logging.error('Cannot connect to server')
 
 def get(args):
     data = args.key
     filename = data.split(':')[0]
     serialized = b64decode(bytes(data.split(':')[1], 'ascii'))
     t = pickle.loads(serialized)
-    logging.debug('Filename:', filename)
-    logging.debug('Data:', t)
+    logging.debug('Filename: %s', filename)
+    logging.debug('Data: %s', t)
     ip_addresses = t[0]
     port = t[1]
     get_file(filename, ip_addresses, port)
@@ -87,10 +90,13 @@ def add_get_command(subparsers):
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose logging')
     subparsers = parser.add_subparsers(help='sub-command help')
     add_share_command(subparsers)
     add_get_command(subparsers)
     args = parser.parse_args()
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
     args.func(args)
 
 def main():
