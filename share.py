@@ -26,7 +26,7 @@ def spawn_server(filename):
     print('Running server on :', address)
     print('NetIfaces IPs :', ip_addresses)
     data_to_send = [ip_addresses, address[1]]
-    serialized = bytes(filename + ':', 'utf-8') + b64encode(pickle.dumps(data_to_send))
+    serialized = bytes(os.path.basename(filename) + ':', 'utf-8') + b64encode(pickle.dumps(data_to_send))
     print(serialized.decode('utf-8'))
     sock.listen(2)
     while True:
