@@ -89,3 +89,10 @@ def main(args):
         logger.error('Unexpected error: %s', str(exc))
     except KeyboardInterrupt:
         print('')
+
+def add_get_command(subparsers):
+    parser_share = subparsers.add_parser('get')
+    parser_share.add_argument('-y', '--no-confirm', action='store_true')
+    parser_share.add_argument('--no-checksum', action='store_true')
+    parser_share.add_argument('key')
+    parser_share.set_defaults(func=main)

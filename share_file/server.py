@@ -76,3 +76,8 @@ def main(args):
         logger.error('RuntimeError: %s', str(exc))
     except Exception as exc:
         logger.error('Unexpected error: %s', str(exc))
+
+def add_share_command(subparsers):
+    parser_share = subparsers.add_parser('share')
+    parser_share.add_argument('file')
+    parser_share.set_defaults(func=main)
