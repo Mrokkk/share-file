@@ -11,6 +11,13 @@ from base64 import b64encode, b64decode
 MAX_CONNECTIONS = 2
 CHUNK_SIZE = 4096
 
+class FileHeader:
+
+    def __init__(self, size, crc=0):
+        self.size = size
+        self.crc = crc
+
+
 def get_ips():
     ip_addresses = []
     for interface in ni.interfaces():
@@ -41,6 +48,10 @@ def share(args):
     while True:
         try:
             (conn, address) = sock.accept()
+            header = FileHeader(os.path.getsize(filename))
+            serialized_header = bytes(pickle.dumps(header))
+            conn.send(serialized_header)
+            data = conn.recv(1024)
             with open(filename, 'rb') as f:
                 read_from_file(conn, f)
                 conn.close()
@@ -48,7 +59,7 @@ def share(args):
             print('')
             return
 
-def write_to_file(sock, file):
+def write_to_file(sock, file, filesize):
     data = sock.recv(CHUNK_SIZE)
     while (data):
         file.write(data)
@@ -62,8 +73,12 @@ def get_file(filename, ip_addresses, port):
         except Exception as exc:
             logging.debug('Cannot connect to %s: %s', ip, str(exc))
             continue
+        serialized_header = sock.recv(1024)
+        header = pickle.loads(serialized_header)
+        logging.debug('File size: %d B', header.size)
+        sock.send(b'OK')
         with open(filename, 'wb') as file:
-            write_to_file(sock, file)
+            write_to_file(sock, file, header.size)
             return
     logging.error('Cannot connect to server')
 
