@@ -5,6 +5,7 @@ import pickle
 import socket
 import logging
 import argparse
+import progressbar
 import netifaces as ni
 from base64 import b64encode, b64decode
 
@@ -60,10 +61,16 @@ def share(args):
             return
 
 def write_to_file(sock, file, filesize):
-    data = sock.recv(CHUNK_SIZE)
-    while (data):
-        file.write(data)
+    with progressbar.DataTransferBar(min_value=0, max_value=filesize) as bar:
+        read_size = 0
         data = sock.recv(CHUNK_SIZE)
+        if filesize < CHUNK_SIZE:
+            read_size = filesize
+        while (data):
+            file.write(data)
+            bar.update(read_size)
+            read_size += CHUNK_SIZE
+            data = sock.recv(CHUNK_SIZE)
 
 def get_file(filename, ip_addresses, port):
     for ip in ip_addresses:
