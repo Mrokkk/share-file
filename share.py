@@ -18,7 +18,6 @@ class FileHeader:
         self.size = size
         self.crc = crc
 
-
 def get_ips():
     ip_addresses = []
     for interface in ni.interfaces():
@@ -81,7 +80,7 @@ def ask_for_file(filename, size):
         return False
     return True
 
-def get_file(filename, ip_addresses, port):
+def get_file(filename, ip_addresses, port, no_confirm=False):
     for ip in ip_addresses:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
@@ -92,8 +91,9 @@ def get_file(filename, ip_addresses, port):
         serialized_header = sock.recv(1024)
         header = pickle.loads(serialized_header)
         logging.debug('File size: %d B', header.size)
-        if ask_for_file(filename, header.size):
-            return
+        if not no_confirm:
+            if ask_for_file(filename, header.size):
+                return
         sock.send(b'OK')
         with open(filename, 'wb') as file:
             write_to_file(sock, file, header.size)
@@ -109,7 +109,7 @@ def get(args):
     logging.debug('Data: %s', t)
     ip_addresses = t[0]
     port = t[1]
-    get_file(filename, ip_addresses, port)
+    get_file(filename, ip_addresses, port, no_confirm=args.no_confirm)
 
 def add_share_command(subparsers):
     parser_share = subparsers.add_parser('share')
@@ -118,6 +118,7 @@ def add_share_command(subparsers):
 
 def add_get_command(subparsers):
     parser_share = subparsers.add_parser('get')
+    parser_share.add_argument('-y', '--no-confirm', action='store_true')
     parser_share.add_argument('key')
     parser_share.set_defaults(func=get)
 
