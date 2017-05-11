@@ -8,7 +8,7 @@ import netifaces as ni
 from base64 import b64encode
 from .definitions import *
 
-def get_ips():
+def read_interfaces_ip():
     ip_addresses = []
     for interface in ni.interfaces():
         try:
@@ -37,17 +37,17 @@ def server_loop(sock, filename):
             read_from_file(conn, f)
             conn.close()
 
-def share(args):
+def main(args):
     filename = args.file
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(('0.0.0.0', 0))
     address = sock.getsockname()
-    ip_addresses = get_ips()
+    ip_addresses = read_interfaces_ip()
     logging.debug('Running server on: %s', address)
     logging.debug('NetIfaces IPs: %s', ip_addresses)
-    data_to_send = [ip_addresses, address[1]]
-    serialized = bytes(os.path.basename(filename) + ':', 'utf-8') + b64encode(pickle.dumps(data_to_send))
-    print(serialized.decode('utf-8'))
+    t = [ip_addresses, address[1]]
+    serialized_tuple = bytes(os.path.basename(filename) + ':', 'utf-8') + b64encode(pickle.dumps(t))
+    print(serialized_tuple.decode('utf-8'))
     sock.listen(MAX_CONNECTIONS)
     try:
         server_loop(sock, filename)

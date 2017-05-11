@@ -6,7 +6,7 @@ import progressbar
 from base64 import b64decode
 from .definitions import *
 
-def write_to_file(sock, file, filesize):
+def read_from_socket(sock, file, filesize):
     with progressbar.DataTransferBar(min_value=0, max_value=filesize) as bar:
         read_size = 0
         data = sock.recv(CHUNK_SIZE)
@@ -19,7 +19,7 @@ def write_to_file(sock, file, filesize):
             data = sock.recv(CHUNK_SIZE)
 
 def ask_for_file(filename, size):
-    answer = input('Do you want to accept ' + filename + ' with size ' + str(size) + 'B? [Y/n] ').lower()
+    answer = input('Do you want to accept ' + filename + ' with size ' + str(size) + ' B? [Y/n] ').lower()
     if answer == '' or answer == 'y':
         return False
     return True
@@ -38,21 +38,19 @@ def get_file(filename, ip_addresses, port, no_confirm=False):
         if not no_confirm:
             if ask_for_file(filename, header.size):
                 return
-        sock.send(b'OK')
+        sock.send(b'ACK')
         with open(filename, 'wb') as file:
-            write_to_file(sock, file, header.size)
+            read_from_socket(sock, file, header.size)
             return
     logging.error('Cannot connect to server')
 
-def get(args):
-    data = args.key
-    filename = data.split(':')[0]
-    serialized = b64decode(bytes(data.split(':')[1], 'ascii'))
-    t = pickle.loads(serialized)
+def main(args):
+    key_splitted = args.key.split(':')
+    filename = key_splitted[0]
+    serialized_tuple = b64decode(bytes(key_splitted[1], 'ascii'))
+    t = pickle.loads(serialized_tuple)
     logging.debug('Filename: %s', filename)
     logging.debug('Data: %s', t)
     ip_addresses = t[0]
     port = t[1]
     get_file(filename, ip_addresses, port, no_confirm=args.no_confirm)
-
-
