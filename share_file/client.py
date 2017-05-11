@@ -29,14 +29,10 @@ def read_from_socket(sock, file, filesize):
     logger.debug('Finished transfer')
 
 def ask_for_file(filename, size):
-    try:
-        answer = input('Do you want to accept ' + filename + ' with size ' + str(size) + ' B? [Y/n] ').lower()
-        if answer == '' or answer == 'y':
-            return False
-        return True
-    except KeyboardInterrupt:
-        print('')
-        return True
+    answer = input('Do you want to accept ' + filename + ' with size ' + str(size) + ' B? [Y/n] ').lower()
+    if answer == '' or answer == 'y':
+        return False
+    return True
 
 def get_header(sock):
     logger.debug('Receiving header')
@@ -60,27 +56,20 @@ def get_file(filename, ip_addresses, port, no_confirm=False, no_checksum=False):
         except Exception as exc:
             logger.debug('Cannot connect to %s: %s', ip, str(exc))
             continue
-        try:
-            header = get_header(sock)
-            logger.debug('File size: %d B', header.size)
-            logger.debug('File CRC32: 0x%x', header.crc)
-            if not no_confirm:
-                if ask_for_file(filename, header.size):
-                    return
-            logger.debug('Sending ACK')
-            sock.send(b'ACK')
-            with open(filename, 'wb') as file:
-                read_from_socket(sock, file, header.size)
-            if not no_checksum:
-                checksum_verify(filename, header.crc)
-        except OSError as exc:
-            logger.error('OSError: %s', str(exc))
-        except RuntimeError as exc:
-            logger.error('RuntimeError: %s', str(exc))
-        except Exception as exc:
-            logger.error('Unexpected error: %s', str(exc))
+        header = get_header(sock)
+        logger.debug('File size: %d B', header.size)
+        logger.debug('File CRC32: 0x%x', header.crc)
+        if not no_confirm:
+            if ask_for_file(filename, header.size):
+                return
+        logger.debug('Sending ACK')
+        sock.send(b'ACK')
+        with open(filename, 'wb') as file:
+            read_from_socket(sock, file, header.size)
+        if not no_checksum:
+            checksum_verify(filename, header.crc)
         return
-    logger.error('Cannot connect to server')
+    raise RuntimeError('Cannot connect to server')
 
 def main(args):
     key_splitted = args.key.split(':')
@@ -90,4 +79,13 @@ def main(args):
     ip_addresses, port = t[0], t[1]
     logger.debug('Filename: %s', filename)
     logger.debug('IP addresses: %s; port: %d', ip_addresses, port)
-    get_file(filename, ip_addresses, port, args.no_confirm, args.no_checksum)
+    try:
+        get_file(filename, ip_addresses, port, args.no_confirm, args.no_checksum)
+    except OSError as exc:
+        logger.error('OSError: %s', str(exc))
+    except RuntimeError as exc:
+        logger.error('RuntimeError: %s', str(exc))
+    except Exception as exc:
+        logger.error('Unexpected error: %s', str(exc))
+    except KeyboardInterrupt:
+        print('')
