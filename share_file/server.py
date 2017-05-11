@@ -4,8 +4,11 @@ import os
 import pickle
 import socket
 import logging
+import zlib
 import netifaces as ni
 from base64 import b64encode
+
+from .crc import *
 from .definitions import *
 
 def read_interfaces_ip():
@@ -26,7 +29,7 @@ def read_from_file(conn, file):
 def server_loop(sock, filename):
     while True:
         (conn, address) = sock.accept()
-        header = FileHeader(os.path.getsize(filename))
+        header = FileHeader(os.path.getsize(filename), crc32_file(filename))
         serialized_header = bytes(pickle.dumps(header))
         conn.send(serialized_header)
         data = conn.recv(1024)
