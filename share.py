@@ -53,6 +53,9 @@ def share(args):
             serialized_header = bytes(pickle.dumps(header))
             conn.send(serialized_header)
             data = conn.recv(1024)
+            if not data:
+                conn.close()
+                continue
             with open(filename, 'rb') as f:
                 read_from_file(conn, f)
                 conn.close()
@@ -72,6 +75,12 @@ def write_to_file(sock, file, filesize):
             read_size += CHUNK_SIZE
             data = sock.recv(CHUNK_SIZE)
 
+def ask_for_file(filename, size):
+    answer = input('Do you want to accept ' + filename + ' with size ' + str(size) + 'B? [Y/n] ').lower()
+    if answer == '' or answer == 'y':
+        return False
+    return True
+
 def get_file(filename, ip_addresses, port):
     for ip in ip_addresses:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -83,6 +92,8 @@ def get_file(filename, ip_addresses, port):
         serialized_header = sock.recv(1024)
         header = pickle.loads(serialized_header)
         logging.debug('File size: %d B', header.size)
+        if ask_for_file(filename, header.size):
+            return
         sock.send(b'OK')
         with open(filename, 'wb') as file:
             write_to_file(sock, file, header.size)
